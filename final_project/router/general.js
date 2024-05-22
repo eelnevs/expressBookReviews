@@ -22,42 +22,34 @@ public_users.post("/register", (req,res) => {
   else res.status(400).json({message:"Please enter both username and password to register."})
 });
 
-let getAllBooks = new Promise((resolve, reject) => {
-  if(books) resolve(books);
-  else reject("Cannot load books");
-})
+// let getAllBooks = new Promise((resolve, reject) => {
+//   if(books) resolve(books);
+//   else reject("Cannot load books");
+// })
+
+const getAllBooks = async () => (await axios.get('https://raw.githubusercontent.com/eelnevs/expressBookReviews/main/final_project/public/booksdb.json')).data
 
 function getBookByISBN(isbn) {
     return new Promise((resolve, reject) => {
-      getAllBooks.then(data => {
+      getAllBooks().then(data => {
         let bookfound = data[isbn];
         if (bookfound) resolve(bookfound);
         else reject("No book found by that isbn");
-      }).catch(err => reject(err));
+      }).catch(err => reject(err.toJSON()));
     })
 }
 
 function getBooksByProperty(property, propertyName) {
   return new Promise((resolve, reject) => {
-    getAllBooks.then(data => {
+    getAllBooks().then(data => {
       let isbns = Object.keys(data);
       let booksfound = {};
       for (let isbn of isbns) {
-        if (data[isbn][propertyName].toLowerCase().includes(property)) booksfound[isbn] = data[isbn];
+        if (data[isbn][propertyName].toLowerCase().includes(property.toLowerCase())) booksfound[isbn] = data[isbn];
       }
       if (Object.keys(booksfound).length > 0) resolve(booksfound)
-      else reject(`Cannot find book by ${property}`)
-    }).catch(err => reject(err));
-  })
-}
-
-function getBookReviews(isbn) {
-  return new Promise((resolve, reject) => {
-    getAllBooks.then(data => {
-      let book = data[isbn];
-      if (book) resolve(book.reviews);
-      else reject(`No book found with ISBN ${isbn}`);
-    }).catch(err => reject(err));
+      else reject(`Cannot find book by ${propertyName}: ${property}`)
+    }).catch(err => reject(err.toJSON()));
   })
 }
 
@@ -67,7 +59,7 @@ public_users.get('/', (req, res) => {
   // res.send(JSON.stringify(books, null, 4));
 
   // using Promise
-  getAllBooks.then(data => res.send(data)).catch(err => res.send(err));
+  getAllBooks().then(data => res.send(data)).catch(err => res.status(404).json(err.toJSON()));
 });
 
 // Get book details based on ISBN
@@ -78,7 +70,7 @@ public_users.get('/isbn/:isbn', (req, res) => {
   // else res.send("No book found by that isbn");
 
   // using Promise
-  getBookByISBN(req.params.isbn).then(data => res.send(data)).catch(err => res.send(err));
+  getBookByISBN(req.params.isbn).then(data => res.send(data)).catch(err => res.status(404).send(err));
  });
   
 // Get book details based on author
@@ -94,7 +86,7 @@ public_users.get('/author/:author', (req, res) => {
   // else res.send(`No book written by ${author} is found`)
 
   // using Promise
-  getBooksByProperty(req.params.author, "author").then(data => res.send(data)).catch(err => res.send(err));
+  getBooksByProperty(req.params.author, "author").then(data => res.send(data)).catch(err => res.status(404).send(err));
 });
 
 // Get all books based on title
@@ -110,18 +102,15 @@ public_users.get('/title/:title', (req, res) => {
   // else res.send(`Cannot find book by title: ${title}`);
 
   // using Promise
-  getBooksByProperty(req.params.title, "title").then(data => res.send(data)).catch(err => res.send(err));
+  getBooksByProperty(req.params.title, "title").then(data => res.send(data)).catch(err => res.status(404).send(err));
 });
 
 //  Get book review
 public_users.get('/review/:isbn', (req, res) => {
-  //Write your code here
-  // let book = books[req.params.isbn]
-  // if (book) res.send(book.reviews)
-  // else res.send(`No book found with ISBN ${req.params.isbn}`);
-
-  // using Promise
-  getBookReviews(req.params.isbn).then(data => res.send(data)).catch(err => res.send(err))
+  // Write your code here
+  let book = books[req.params.isbn]
+  if (book) res.send(book.reviews)
+  else res.send(`No book found with ISBN ${req.params.isbn}`);
 });
 
 module.exports.general = public_users;
