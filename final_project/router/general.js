@@ -22,36 +22,7 @@ public_users.post("/register", (req,res) => {
   else res.status(400).json({message:"Please enter both username and password to register."})
 });
 
-// let getAllBooks = new Promise((resolve, reject) => {
-//   if(books) resolve(books);
-//   else reject("Cannot load books");
-// })
-
 const getAllBooks = async () => (await axios.get('https://raw.githubusercontent.com/eelnevs/expressBookReviews/main/final_project/public/booksdb.json')).data
-
-function getBookByISBN(isbn) {
-    return new Promise((resolve, reject) => {
-      getAllBooks().then(data => {
-        let bookfound = data[isbn];
-        if (bookfound) resolve(bookfound);
-        else reject("No book found by that isbn");
-      }).catch(err => reject(err.toJSON()));
-    })
-}
-
-function getBooksByProperty(property, propertyName) {
-  return new Promise((resolve, reject) => {
-    getAllBooks().then(data => {
-      let isbns = Object.keys(data);
-      let booksfound = {};
-      for (let isbn of isbns) {
-        if (data[isbn][propertyName].toLowerCase().includes(property.toLowerCase())) booksfound[isbn] = data[isbn];
-      }
-      if (Object.keys(booksfound).length > 0) resolve(booksfound)
-      else reject(`Cannot find book by ${propertyName}: ${property}`)
-    }).catch(err => reject(err.toJSON()));
-  })
-}
 
 // Get the book list available in the shop
 public_users.get('/', (req, res) => {
@@ -61,6 +32,16 @@ public_users.get('/', (req, res) => {
   // using Promise
   getAllBooks().then(data => res.send(data)).catch(err => res.status(404).json(err.toJSON()));
 });
+
+function getBookByISBN(isbn) {
+  return new Promise((resolve, reject) => {
+    getAllBooks().then(data => {
+      let bookfound = data[isbn];
+      if (bookfound) resolve(bookfound);
+      else reject("No book found by that isbn");
+    }).catch(err => reject(err.toJSON()));
+  })
+}
 
 // Get book details based on ISBN
 public_users.get('/isbn/:isbn', (req, res) => {
@@ -72,7 +53,7 @@ public_users.get('/isbn/:isbn', (req, res) => {
   // using Promise
   getBookByISBN(req.params.isbn).then(data => res.send(data)).catch(err => res.status(404).send(err));
  });
-  
+
 // Get book details based on author
 public_users.get('/author/:author', (req, res) => {
   //Write your code here
@@ -88,6 +69,20 @@ public_users.get('/author/:author', (req, res) => {
   // using Promise
   getBooksByProperty(req.params.author, "author").then(data => res.send(data)).catch(err => res.status(404).send(err));
 });
+
+function getBooksByProperty(property, propertyName) {
+  return new Promise((resolve, reject) => {
+    getAllBooks().then(data => {
+      let isbns = Object.keys(data);
+      let booksfound = {};
+      for (let isbn of isbns) {
+        if (data[isbn][propertyName].toLowerCase().includes(property.toLowerCase())) booksfound[isbn] = data[isbn];
+      }
+      if (Object.keys(booksfound).length > 0) resolve(booksfound)
+      else reject(`Cannot find book by ${propertyName}: ${property}`)
+    }).catch(err => reject(err.toJSON()));
+  })
+}
 
 // Get all books based on title
 public_users.get('/title/:title', (req, res) => {
